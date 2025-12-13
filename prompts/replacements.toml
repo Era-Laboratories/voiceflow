@@ -1,0 +1,170 @@
+# VoiceFlow Replacement Dictionary
+#
+# Format: "what Whisper outputs" = "correct version"
+# These replacements are applied BEFORE the LLM processes the text.
+#
+# Add your own patterns below! Common categories:
+# - Technical terms (libraries, frameworks, languages)
+# - Product names (companies, apps, services)
+# - Personal vocabulary (names, project names, jargon)
+# - Phonetic mishearings (sounds-like errors)
+
+# ============================================
+# PROGRAMMING LANGUAGES & EXTENSIONS
+# ============================================
+[languages]
+"C P P" = ".cpp"
+"C pp" = ".cpp"
+"dot C P P" = ".cpp"
+"dot cpp" = ".cpp"
+"H P P" = ".hpp"
+"dot H P P" = ".hpp"
+"J S" = ".js"
+"dot J S" = ".js"
+"T S" = ".ts"
+"dot T S" = ".ts"
+"P Y" = ".py"
+"dot P Y" = ".py"
+"R S" = ".rs"
+"dot R S" = ".rs"
+"dot go" = ".go"
+"J S X" = ".jsx"
+"T S X" = ".tsx"
+
+# ============================================
+# ML/AI TERMS
+# ============================================
+[ml_ai]
+# Model names
+"S M O L L M" = "SmolLM"
+"smol L M" = "SmolLM"
+"smal L L M" = "SmolLM"
+"small L M" = "SmolLM"
+"G P T" = "GPT"
+"chat G P T" = "ChatGPT"
+"L L M" = "LLM"
+"L L Ms" = "LLMs"
+"mistral R S" = "mistral.rs"
+
+# Hardware/Compute
+"C U D A" = "CUDA"
+"cuda" = "CUDA"
+"G P U" = "GPU"
+"G P Us" = "GPUs"
+"C P U" = "CPU"
+"C P Us" = "CPUs"
+"T P U" = "TPU"
+"M L" = "ML"
+"A I" = "AI"
+"N L P" = "NLP"
+
+# Apple Silicon mishearings
+"Z ill oc on" = "Silicon"
+"sill oc on" = "Silicon"
+"sill icon" = "Silicon"
+"Z ilicon" = "Silicon"
+"apple silicon" = "Apple Silicon"
+"M 1" = "M1"
+"M 2" = "M2"
+"M 3" = "M3"
+"M 4" = "M4"
+
+# ============================================
+# SPEECH-TO-TEXT TOOLS
+# ============================================
+[stt_tools]
+"whisper C P P" = "whisper.cpp"
+"whisper. C P P" = "whisper.cpp"
+"whisper. cpp" = "whisper.cpp"
+"whisper dot C P P" = "whisper.cpp"
+"W H I S P E R" = "Whisper"
+
+# ============================================
+# COMMON TECH COMPANIES & PRODUCTS
+# ============================================
+[companies]
+"open A I" = "OpenAI"
+"O P E N A I" = "OpenAI"
+"anthropic" = "Anthropic"
+"hugging face" = "Hugging Face"
+"meta" = "Meta"
+"google" = "Google"
+"microsoft" = "Microsoft"
+"apple" = "Apple"
+"amazon" = "Amazon"
+"A W S" = "AWS"
+"G C P" = "GCP"
+
+# ============================================
+# PROGRAMMING CONCEPTS
+# ============================================
+[programming]
+"A P I" = "API"
+"A P Is" = "APIs"
+"U R L" = "URL"
+"U R Ls" = "URLs"
+"H T T P" = "HTTP"
+"H T T P S" = "HTTPS"
+"J S O N" = "JSON"
+"Y A M L" = "YAML"
+"T O M L" = "TOML"
+"S Q L" = "SQL"
+"C L I" = "CLI"
+"G U I" = "GUI"
+"I D E" = "IDE"
+"S D K" = "SDK"
+"R E S T" = "REST"
+"G R P C" = "gRPC"
+"O R M" = "ORM"
+"C R U D" = "CRUD"
+"A S T" = "AST"
+"R E G E X" = "regex"
+
+# ============================================
+# VERSION NUMBERS (common patterns)
+# ============================================
+[versions]
+"version 3 point 5" = "version 3.5"
+"version 4 point 0" = "version 4.0"
+"V 1" = "v1"
+"V 2" = "v2"
+"V 3" = "v3"
+"3 B" = "3B"
+"7 B" = "7B"
+"13 B" = "13B"
+"70 B" = "70B"
+
+# ============================================
+# OPERATING SYSTEMS
+# ============================================
+[os]
+"mac O S" = "macOS"
+"Mac O S" = "macOS"
+"i O S" = "iOS"
+"I O S" = "iOS"
+"windows" = "Windows"
+"linux" = "Linux"
+"ubuntu" = "Ubuntu"
+"U N I X" = "Unix"
+
+# ============================================
+# RUST ECOSYSTEM (since this project uses Rust)
+# ============================================
+[rust]
+"cargo" = "Cargo"
+"crate" = "crate"
+"crates dot I O" = "crates.io"
+"tokio" = "Tokio"
+"serde" = "Serde"
+"anyhow" = "anyhow"
+
+# ============================================
+# YOUR CUSTOM REPLACEMENTS
+# Add your frequently used terms below!
+# ============================================
+[custom]
+# "what you say" = "what you mean"
+# Examples:
+# "era computer" = "Era Computer"
+# "my project name" = "MyProjectName"
+

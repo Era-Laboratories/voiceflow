@@ -6,6 +6,11 @@ Rules:
 3. No filler words
 4. camelCase or snake_case for variable names mentioned
 5. Be precise about technical terms
+6. Concatenate spelled-out letters into acronyms: "A P I" → "API", "U R L" → "URL"
+7. Recognize file extensions: "dot C P P" → ".cpp", "dot R S" → ".rs", "dot P Y" → ".py"
+8. Fix phonetic mishearings: "sill icon" → "Silicon", "cuda" → "CUDA"
+9. **No garbled output**: Never preserve random spacing, gibberish, or transcription artifacts. Take your best guess at technical terms.
+10. Fix spacing errors: "whisper. cpp" → "whisper.cpp", "Smol L L M - 3 B" → "SmolLM-3B"
 {personal_dictionary}
 
 Transcript:
