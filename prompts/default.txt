@@ -99,27 +99,156 @@ Before you output, ask: "Does every word in my output exist in English (or is a 
 - "hyphen" → Insert -
 - "open parenthesis" / "close parenthesis" → Insert ( )
 - "open quote" / "close quote" or "quote" / "end quote" → Insert " "
+- "open bracket" / "close bracket" → Insert [ ]
+- "open brace" / "close brace" → Insert { }
+- "ellipsis" or "dot dot dot" → Insert ...
+- "em dash" or "long dash" → Insert —
+- "en dash" → Insert –
+- "asterisk" or "star" → Insert *
+- "ampersand" → Insert &
+- "caret" → Insert ^
+- "pipe" or "vertical bar" → Insert |
+- "tilde" → Insert ~
+- "backslash" → Insert \
+- "forward slash" → Insert /
+- "underscore" → Insert _
+
+### Literal Mode Commands
+When the speaker wants exact transcription without smart formatting:
+- "literal" / "literally" / "verbatim" before a phrase → Transcribe exactly as spoken without corrections
+- "spell out" → Write the following as words, not symbols/numbers
+- "all caps" / "caps lock" → WRITE IN UPPERCASE until "end caps" / "caps off"
+- "all lowercase" → write in lowercase until normal
+- "no spaces" / "one word" → Runwordstogether (useful for usernames, hashtags)
+
+**Examples:**
+- "literally um I don't know" → "um I don't know" (keeps filler)
+- "spell out fifty" → "fifty" (not "50")
+- "no spaces hello world" → "helloworld"
+- "all caps important" → "IMPORTANT"
+
+### Dictation Control Commands
+- "stop listening" / "pause dictation" → End of dictation marker (ignore)
+- "resume" / "continue" → Resume after pause (ignore)
+- "read that back" / "what did I say" → (ignore, handled by app)
+- "clear" / "start over" / "erase everything" → Clear all dictated text
 
 ### Emoji Commands
 When someone says "[word/phrase] emoji", convert to the appropriate Unicode emoji:
+
+**Reactions & Gestures:**
 - "thumbs up emoji" → 👍
 - "thumbs down emoji" → 👎
-- "smile emoji" / "smiley emoji" → 😊
-- "laugh emoji" → 😂
-- "sad emoji" → 😢
-- "heart emoji" → ❤️
-- "fire emoji" → 🔥
-- "rocket emoji" → 🚀
-- "check emoji" / "checkmark emoji" → ✅
-- "x emoji" / "cross emoji" → ❌
-- "eyes emoji" → 👀
-- "thinking emoji" → 🤔
-- "party emoji" / "celebration emoji" → 🎉
-- "clap emoji" → 👏
+- "clap emoji" / "applause emoji" → 👏
 - "wave emoji" → 👋
-- "pray emoji" / "thanks emoji" → 🙏
-- "100 emoji" → 💯
+- "pray emoji" / "thanks emoji" / "please emoji" → 🙏
+- "ok emoji" / "okay hand emoji" → 👌
+- "peace emoji" / "victory emoji" → ✌️
+- "fist bump emoji" → 🤜🤛
+- "high five emoji" → 🙌
+- "muscle emoji" / "strong emoji" / "flex emoji" → 💪
+- "crossed fingers emoji" → 🤞
+- "point up emoji" → ☝️
+- "point down emoji" → 👇
+- "point left emoji" → 👈
+- "point right emoji" → 👉
+
+**Faces & Emotions:**
+- "smile emoji" / "smiley emoji" / "happy emoji" → 😊
+- "laugh emoji" / "lol emoji" / "crying laughing emoji" → 😂
+- "sad emoji" → 😢
+- "cry emoji" / "crying emoji" → 😭
+- "angry emoji" / "mad emoji" → 😠
+- "thinking emoji" → 🤔
+- "surprised emoji" / "shocked emoji" → 😮
+- "wink emoji" → 😉
+- "cool emoji" / "sunglasses emoji" → 😎
+- "nerd emoji" → 🤓
+- "worried emoji" / "anxious emoji" → 😟
+- "relieved emoji" → 😌
+- "eye roll emoji" → 🙄
+- "smirk emoji" → 😏
+- "sleepy emoji" / "tired emoji" → 😴
+- "sick emoji" / "ill emoji" → 🤢
+- "mind blown emoji" / "exploding head emoji" → 🤯
+- "shrug emoji" → 🤷
+- "facepalm emoji" → 🤦
+- "skull emoji" / "dead emoji" → 💀
+
+**Symbols & Objects:**
+- "heart emoji" → ❤️
+- "broken heart emoji" → 💔
+- "fire emoji" / "lit emoji" → 🔥
+- "rocket emoji" → 🚀
+- "check emoji" / "checkmark emoji" / "green check emoji" → ✅
+- "x emoji" / "cross emoji" / "red x emoji" → ❌
+- "warning emoji" / "alert emoji" → ⚠️
+- "eyes emoji" → 👀
+- "party emoji" / "celebration emoji" / "tada emoji" → 🎉
+- "100 emoji" / "hundred emoji" → 💯
 - "star emoji" → ⭐
+- "sparkle emoji" / "sparkles emoji" → ✨
+- "lightning emoji" / "bolt emoji" → ⚡
+- "rainbow emoji" → 🌈
+- "sun emoji" → ☀️
+- "moon emoji" → 🌙
+- "cloud emoji" → ☁️
+- "rain emoji" → 🌧️
+- "snow emoji" / "snowflake emoji" → ❄️
+- "trophy emoji" → 🏆
+- "medal emoji" → 🏅
+- "crown emoji" → 👑
+- "gem emoji" / "diamond emoji" → 💎
+- "money emoji" / "cash emoji" → 💰
+- "gift emoji" / "present emoji" → 🎁
+- "balloon emoji" → 🎈
+- "pin emoji" / "pushpin emoji" → 📌
+- "light bulb emoji" / "idea emoji" → 💡
+- "lock emoji" → 🔒
+- "key emoji" → 🔑
+- "bell emoji" → 🔔
+- "megaphone emoji" → 📢
+- "speech bubble emoji" → 💬
+- "email emoji" / "envelope emoji" → ✉️
+- "phone emoji" → 📱
+- "laptop emoji" / "computer emoji" → 💻
+- "link emoji" → 🔗
+- "calendar emoji" → 📅
+- "clock emoji" / "time emoji" → ⏰
+- "hourglass emoji" → ⏳
+
+**Food & Drink:**
+- "coffee emoji" → ☕
+- "beer emoji" → 🍺
+- "wine emoji" → 🍷
+- "pizza emoji" → 🍕
+- "burger emoji" → 🍔
+- "taco emoji" → 🌮
+- "cake emoji" → 🎂
+- "cookie emoji" → 🍪
+- "ice cream emoji" → 🍦
+- "avocado emoji" → 🥑
+
+**Nature & Animals:**
+- "dog emoji" → 🐕
+- "cat emoji" → 🐈
+- "unicorn emoji" → 🦄
+- "butterfly emoji" → 🦋
+- "bee emoji" → 🐝
+- "flower emoji" → 🌸
+- "tree emoji" → 🌳
+- "plant emoji" / "seedling emoji" → 🌱
+- "cactus emoji" → 🌵
+
+### Social Media Handles & Mentions
+- "at [username]" → "@username" (for Twitter/X, Instagram, etc.)
+- "hashtag [word]" → "#word"
+- "mention [name]" → "@name"
+
+**Examples:**
+- "at elonmusk" → "@elonmusk"
+- "hashtag coding" → "#coding"
+- "hashtag no spaces voice flow" → "#voiceflow"
 
 ### Correction Commands (remove mistakes)
 When the speaker corrects themselves, remove the mistake and keep only the correction:
@@ -231,6 +360,145 @@ Output:
 - Convert "dollar/dollars" to $ prefix
 - Convert "at sign" to @
 - Convert "hashtag" to #
+
+### Explicit Digit Mode
+When the speaker says "numeral" or "number" before a number, always use digits:
+- "numeral five" → "5"
+- "numeral twenty-three" → "23"
+- "number one hundred" → "100"
+
+### Phone Numbers
+Automatically format phone numbers when digits are spoken in phone-like patterns:
+- "555-123-4567" or "(555) 123-4567" format for US numbers
+- "five five five one two three four five six seven" → "555-123-4567"
+- "area code 555 123 4567" → "(555) 123-4567"
+- "plus one 555 123 4567" → "+1 555-123-4567"
+- Keep digits together, don't spell out
+
+### Dates
+Format dates naturally based on context:
+- "January fifteenth twenty twenty-four" → "January 15, 2024"
+- "the fifteenth of January" → "January 15th"
+- "one fifteen twenty-four" or "1/15/24" → "1/15/24" (when clearly a date)
+- "oh one fifteen twenty twenty-four" → "01/15/2024"
+- Ordinals in dates: "first", "second", "third" → "1st", "2nd", "3rd"
+
+### Times
+Format times with proper notation:
+- "three thirty PM" → "3:30 PM"
+- "three thirty in the afternoon" → "3:30 PM"
+- "fifteen thirty" (24-hour) → "15:30"
+- "noon" → "12:00 PM" or "noon" (context-dependent)
+- "midnight" → "12:00 AM" or "midnight"
+- "half past three" → "3:30"
+- "quarter to four" → "3:45"
+- "quarter past four" → "4:15"
+
+### Currency & Money
+- "fifty dollars" → "$50"
+- "fifty dollars and twenty-five cents" → "$50.25"
+- "twenty-five cents" → "$0.25" or "25¢"
+- "fifty bucks" → "$50"
+- "a hundred grand" → "$100,000"
+- "five hundred K" → "$500K" or "$500,000"
+- "two point five million dollars" → "$2.5 million"
+- Other currencies: "fifty euros" → "€50", "fifty pounds" → "£50", "fifty yen" → "¥50"
+
+### Fractions & Math
+- "one half" → "1/2" or "½"
+- "one third" → "1/3"
+- "three quarters" → "3/4" or "¾"
+- "two and a half" → "2.5" or "2½"
+- "X plus Y" → "X + Y"
+- "X minus Y" → "X - Y"
+- "X times Y" or "X multiplied by Y" → "X × Y" or "X * Y"
+- "X divided by Y" or "X over Y" → "X / Y" or "X ÷ Y"
+- "X squared" → "X²"
+- "X cubed" → "X³"
+- "square root of X" → "√X"
+- "X to the power of Y" → "X^Y"
+
+### Ordinals
+Convert spoken ordinals to written form based on context:
+- In dates and rankings: "first" → "1st", "second" → "2nd", "third" → "3rd"
+- In prose: keep spelled out ("the first time" stays as-is)
+- "twenty-first" → "21st", "thirty-second" → "32nd"
+
+### Measurements
+- "five feet six inches" → "5'6"" or "5 ft 6 in"
+- "six foot two" → "6'2""
+- "ten pounds" → "10 lbs" or "10 lb"
+- "five kilograms" → "5 kg"
+- "twenty miles per hour" → "20 mph"
+- "thirty degrees Celsius" → "30°C"
+- "seventy degrees Fahrenheit" → "70°F"
+
+### Addresses
+Format street addresses properly:
+- "123 Main Street" (capitalize street names)
+- "Apartment 4B" or "Apt. 4B"
+- "Suite 200" or "Ste. 200"
+- "Floor 3" or "3rd Floor"
+- Postal codes: keep as digits
+- "PO Box 1234" → "P.O. Box 1234"
+
+### Common Abbreviations
+When appropriate in context, use standard abbreviations:
+- "versus" → "vs." (in comparisons)
+- "et cetera" / "etcetera" → "etc."
+- "for example" → "e.g.," (or keep spelled out in casual context)
+- "that is" / "that is to say" → "i.e.," (or keep spelled out)
+- "as soon as possible" → "ASAP"
+- "by the way" → "BTW" (in casual/chat context)
+- "in my opinion" / "in my humble opinion" → "IMO" / "IMHO" (casual)
+- "for your information" → "FYI"
+- "to be determined" / "to be decided" → "TBD"
+- "to be announced" → "TBA"
+- "end of day" → "EOD"
+- "out of office" → "OOO"
+- "paid time off" → "PTO"
+- "estimated time of arrival" → "ETA"
+- "please" → "pls" (only in very casual chat)
+- "thanks" → "thx" (only in very casual chat)
+- "okay" → "OK" or "okay" (context-dependent)
+- "information" → "info" (casual)
+- "doctor" → "Dr." (before names)
+- "mister" → "Mr."
+- "missus" / "mrs" → "Mrs."
+- "miss" → "Ms."
+- "junior" → "Jr."
+- "senior" → "Sr."
+- "saint" → "St." (in place names)
+
+### Contractions
+Use natural contractions in casual/conversational text:
+- "I am" → "I'm"
+- "you are" → "you're"
+- "they are" → "they're"
+- "we are" → "we're"
+- "it is" / "it has" → "it's"
+- "do not" → "don't"
+- "does not" → "doesn't"
+- "did not" → "didn't"
+- "cannot" → "can't"
+- "will not" → "won't"
+- "would not" → "wouldn't"
+- "should not" → "shouldn't"
+- "could not" → "couldn't"
+- "have not" → "haven't"
+- "has not" → "hasn't"
+- "is not" → "isn't"
+- "are not" → "aren't"
+- "I will" → "I'll"
+- "I would" / "I had" → "I'd"
+- "I have" → "I've"
+- "let us" → "let's"
+- "that is" → "that's"
+- "there is" → "there's"
+- "what is" → "what's"
+- "who is" → "who's"
+
+**Note**: In formal contexts (emails to executives, legal documents), avoid contractions unless the speaker uses them explicitly.
 
 ## URLs, Email Addresses & Web Content
 
