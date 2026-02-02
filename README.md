@@ -83,12 +83,20 @@ Audio → Qwen3-ASR (Python daemon) → Post-processing → Output
 
 ### Download
 
-1. Download the latest `VoiceFlow-Installer.dmg` from [Releases](https://github.com/Era-Laboratories/voiceflow/releases)
+1. Download the latest `VoiceFlow.dmg` from [Releases](https://github.com/Era-Laboratories/voiceflow/releases)
 2. Open the DMG and drag VoiceFlow to Applications
 3. Launch VoiceFlow from Applications
 4. Grant **Microphone** and **Accessibility** permissions when prompted
 
-> **Note:** The DMG is not yet code-signed or notarized. macOS Gatekeeper may block the app on first launch. To open it, right-click the app and select **Open**, or go to **System Settings > Privacy & Security** and click **Open Anyway**.
+> **⚠️ Important: VoiceFlow is not yet notarized by Apple.**
+>
+> macOS Gatekeeper **will block the app** on first launch. To open it:
+>
+> **Option A:** Right-click `VoiceFlow.app` → click **Open** → click **Open** again in the dialog
+>
+> **Option B:** Go to **System Settings → Privacy & Security**, scroll down, and click **Open Anyway**
+>
+> This only needs to be done once. After that, the app opens normally.
 
 ## Building from Source
 
