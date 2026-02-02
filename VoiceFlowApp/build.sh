@@ -7,8 +7,34 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 BUILD_DIR="$SCRIPT_DIR/build"
 APP_NAME="VoiceFlow"
+ONNX_VERSION="1.22.0"
+ONNX_CACHE_DIR="$BUILD_DIR/onnxruntime-cache"
 
 echo "Building VoiceFlow macOS App..."
+
+# Step 0: Download ONNX Runtime if not cached
+ONNX_DYLIB="$ONNX_CACHE_DIR/libonnxruntime.$ONNX_VERSION.dylib"
+if [ ! -f "$ONNX_DYLIB" ]; then
+    echo "Step 0: Downloading ONNX Runtime $ONNX_VERSION..."
+    mkdir -p "$ONNX_CACHE_DIR"
+
+    # Detect architecture
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "arm64" ]; then
+        ONNX_ARCH="arm64"
+    else
+        ONNX_ARCH="x86_64"
+    fi
+
+    ONNX_URL="https://github.com/microsoft/onnxruntime/releases/download/v$ONNX_VERSION/onnxruntime-osx-$ONNX_ARCH-$ONNX_VERSION.tgz"
+    curl -sL "$ONNX_URL" -o "$ONNX_CACHE_DIR/onnxruntime.tgz"
+    tar -xzf "$ONNX_CACHE_DIR/onnxruntime.tgz" -C "$ONNX_CACHE_DIR"
+    cp "$ONNX_CACHE_DIR/onnxruntime-osx-$ONNX_ARCH-$ONNX_VERSION/lib/libonnxruntime.$ONNX_VERSION.dylib" "$ONNX_DYLIB"
+    rm -rf "$ONNX_CACHE_DIR/onnxruntime.tgz" "$ONNX_CACHE_DIR/onnxruntime-osx-$ONNX_ARCH-$ONNX_VERSION"
+    echo "  ONNX Runtime downloaded and cached."
+else
+    echo "Step 0: Using cached ONNX Runtime $ONNX_VERSION"
+fi
 
 # Step 1: Build Rust FFI library
 echo "Step 1: Building Rust FFI library..."
@@ -46,6 +72,9 @@ cp "$(swift build -c release --show-bin-path)/VoiceFlowApp" "$APP_BUNDLE/Content
 # Copy Rust library
 cp "$PROJECT_ROOT/target/release/libvoiceflow_ffi.dylib" "$APP_BUNDLE/Contents/Frameworks/"
 
+# Copy ONNX Runtime library (required for Moonshine STT)
+cp "$ONNX_DYLIB" "$APP_BUNDLE/Contents/Frameworks/libonnxruntime.dylib"
+
 # Copy navbar icon asset from img/navbar/
 # White icon works for both light and dark menu bars
 IMG_DIR="$PROJECT_ROOT/img"
@@ -55,6 +84,12 @@ cp "$NAVBAR_DIR/navbar-light.png" "$APP_BUNDLE/Contents/Resources/MenuBarIcon.pn
 
 # Copy app icon for Settings UI
 cp "$IMG_DIR/app.png" "$APP_BUNDLE/Contents/Resources/AppLogo.png"
+
+# Copy Python daemon script for Qwen3-ASR consolidated mode
+if [ -f "$PROJECT_ROOT/scripts/qwen3_asr_daemon.py" ]; then
+    cp "$PROJECT_ROOT/scripts/qwen3_asr_daemon.py" "$APP_BUNDLE/Contents/Resources/"
+    echo "  Copied qwen3_asr_daemon.py to Resources"
+fi
 
 # Generate macOS app icon (.icns) from app.png
 echo "Generating app icon..."
@@ -78,7 +113,7 @@ sips -z 1024 1024 "$IMG_DIR/app.png" --out "$ICONSET_DIR/icon_512x512@2x.png" >/
 iconutil -c icns "$ICONSET_DIR" -o "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 rm -rf "$ICONSET_DIR"
 
-# Fix library path - find actual path in binary and replace it
+# Fix library paths
 OLD_PATH=$(otool -L "$APP_BUNDLE/Contents/MacOS/$APP_NAME" | grep voiceflow_ffi | awk '{print $1}')
 if [ -n "$OLD_PATH" ]; then
     install_name_tool -change \
@@ -86,6 +121,15 @@ if [ -n "$OLD_PATH" ]; then
         "@executable_path/../Frameworks/libvoiceflow_ffi.dylib" \
         "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 fi
+
+# Add rpath to executable so it can find libraries in Frameworks
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BUNDLE/Contents/MacOS/$APP_NAME" 2>/dev/null || true
+
+# Add rpath to FFI library so it can find ONNX Runtime
+install_name_tool -add_rpath "@loader_path" "$APP_BUNDLE/Contents/Frameworks/libvoiceflow_ffi.dylib" 2>/dev/null || true
+
+# Fix ONNX Runtime install name to use @rpath
+install_name_tool -id "@rpath/libonnxruntime.dylib" "$APP_BUNDLE/Contents/Frameworks/libonnxruntime.dylib"
 
 # Create Info.plist
 cat > "$APP_BUNDLE/Contents/Info.plist" << EOF
@@ -120,6 +164,18 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << EOF
 </dict>
 </plist>
 EOF
+
+# Step 6: Code signing
+SIGN_IDENTITY="Developer ID Application: Era Laboratories Inc. (JVSQ3LCY64)"
+if security find-identity -v -p codesigning | grep -q "$SIGN_IDENTITY"; then
+    echo "Step 6: Signing app bundle..."
+    xattr -cr "$APP_BUNDLE"
+    codesign --deep --force --options runtime --sign "$SIGN_IDENTITY" "$APP_BUNDLE"
+    codesign --verify --deep --strict "$APP_BUNDLE"
+    echo "  Signed and verified."
+else
+    echo "Step 6: Skipping code signing (Developer ID certificate not found in keychain)"
+fi
 
 echo ""
 echo "Build complete!"
