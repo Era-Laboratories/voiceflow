@@ -225,7 +225,10 @@ enum SpacingMode: String, CaseIterable {
                 // Cursor is at start of field - no space needed
                 return text
             case .unavailable:
-                // Can't determine context - be conservative, no space
+                // Can't determine context - fall back to smart spacing
+                if let first = text.first, first.isLetter || first.isNumber {
+                    return " " + text
+                }
                 return text
             }
         case .smart:
@@ -508,6 +511,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var overlayHostingView: NSHostingView<RecordingOverlayView>?
     var overlayState = OverlayState()
     var settingsWindow: NSWindow?
+    var wizardController: SetupWizardController?
     private var audioLevelCancellable: AnyCancellable?
 
     private var isRecording = false
@@ -559,6 +563,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Hide dock icon - menu bar only
         NSApp.setActivationPolicy(.accessory)
 
+        if !SetupWizardController.isSetupComplete {
+            showSetupWizard()
+        } else {
+            proceedWithNormalLaunch()
+        }
+    }
+
+    private func showSetupWizard() {
+        let controller = SetupWizardController()
+        wizardController = controller
+        controller.show { [weak self] in
+            self?.wizardController = nil
+            self?.proceedWithNormalLaunch()
+        }
+    }
+
+    private func proceedWithNormalLaunch() {
         setupStatusItem()
         setupHotkey()
         setupOverlay()
@@ -578,6 +599,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // Clean up resources before termination to prevent memory leaks
+        // This ensures the Rust side properly releases all model memory
+        voiceFlow.cleanup()
+
+        // Log final memory state for debugging
+        let memUsage = VoiceFlowBridge.getMemoryUsage()
+        print("VoiceFlow terminating - Final memory: \(Int(memUsage.residentMB))MB resident, \(Int(memUsage.peakMB))MB peak")
     }
 
     private func checkAccessibilityPermission() {
@@ -966,7 +997,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let expandedText = SnippetManager.shared.expandSnippets(in: result.formattedText)
 
                 // Apply spacing mode to the expanded text
-                let spacedText = currentSpacingMode.apply(to: expandedText)
+                var spacedText = currentSpacingMode.apply(to: expandedText)
+
+                // Always ensure a trailing space so consecutive dictations are separated
+                if !spacedText.isEmpty && !spacedText.hasSuffix(" ") && !spacedText.hasSuffix("\n") {
+                    spacedText += " "
+                }
 
                 // Copy to clipboard
                 let pasteboard = NSPasteboard.general
@@ -1445,6 +1481,7 @@ struct GeneralSettingsView: View {
         try? task.run()
 
         // Terminate the current instance
+        // applicationWillTerminate will handle cleanup
         NSApp.terminate(nil)
     }
 }
@@ -1626,11 +1663,13 @@ struct LLMModel: Identifiable {
 enum SttEngine: String, CaseIterable {
     case whisper = "whisper"
     case moonshine = "moonshine"
+    case qwen3Asr = "qwen3-asr"
 
     var displayName: String {
         switch self {
         case .whisper: return "Whisper"
         case .moonshine: return "Moonshine"
+        case .qwen3Asr: return "Qwen3-ASR"
         }
     }
 
@@ -1638,6 +1677,15 @@ enum SttEngine: String, CaseIterable {
         switch self {
         case .whisper: return "OpenAI Whisper - accurate, proven technology"
         case .moonshine: return "Moonshine - 5x faster, lower memory usage"
+        case .qwen3Asr: return "Qwen3-ASR - high-quality ASR with LLM formatting"
+        }
+    }
+
+    /// Whether this engine is external (Python daemon, not in Rust pipeline)
+    var isExternal: Bool {
+        switch self {
+        case .qwen3Asr: return true
+        default: return false
         }
     }
 }
@@ -1646,6 +1694,35 @@ struct MoonshineModel: Identifiable {
     let id: String
     let displayName: String
     let sizeMB: UInt32
+    var isDownloaded: Bool
+}
+
+/// Pipeline mode (mirrors Rust PipelineMode enum)
+enum PipelineMode: String, CaseIterable {
+    case sttPlusLlm = "stt-plus-llm"
+    case consolidated = "consolidated"
+
+    var displayName: String {
+        switch self {
+        case .sttPlusLlm: return "STT + LLM (traditional)"
+        case .consolidated: return "Consolidated (single model)"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .sttPlusLlm: return "Separate speech-to-text and language model stages"
+        case .consolidated: return "Single model handles audio-to-text (Qwen3-ASR via MLX)"
+        }
+    }
+}
+
+/// Consolidated model info (mirrors Rust ConsolidatedModel)
+struct ConsolidatedModelItem: Identifiable {
+    let id: String
+    let displayName: String
+    let dirName: String
+    let sizeGB: Float
     var isDownloaded: Bool
 }
 
@@ -1665,8 +1742,47 @@ class ModelManager: ObservableObject {
     @Published var downloadingMoonshineModelId: String?
     @Published var moonshineDownloadProgress: Double = 0
 
+    // Pipeline mode and consolidated model settings
+    @Published var currentPipelineMode: PipelineMode = .sttPlusLlm
+    @Published var currentConsolidatedModelId: String = "qwen3-asr-0.6b"
+    @Published var consolidatedModels: [ConsolidatedModelItem] = []
+    @Published var downloadingConsolidatedModelId: String?
+    @Published var consolidatedDownloadProgress: Double = 0
+
     private var downloadTask: URLSessionDownloadTask?
     private var moonshineDownloadTasks: [URLSessionDownloadTask] = []
+
+    /// HuggingFace repos for consolidated models
+    private static let consolidatedHfRepos: [String: String] = [
+        "qwen3-asr-0.6b": "Qwen/Qwen3-ASR-0.6B",
+        "qwen3-asr-1.7b": "Qwen/Qwen3-ASR-1.7B",
+    ]
+
+    /// Required files for consolidated model inference (per model)
+    private static let consolidatedRequiredFiles: [String: [String]] = [
+        "qwen3-asr-0.6b": [
+            "config.json",
+            "chat_template.json",
+            "vocab.json",
+            "merges.txt",
+            "tokenizer_config.json",
+            "preprocessor_config.json",
+            "generation_config.json",
+            "model.safetensors",
+        ],
+        "qwen3-asr-1.7b": [
+            "config.json",
+            "chat_template.json",
+            "vocab.json",
+            "merges.txt",
+            "tokenizer_config.json",
+            "preprocessor_config.json",
+            "generation_config.json",
+            "model.safetensors.index.json",
+            "model-00001-of-00002.safetensors",
+            "model-00002-of-00002.safetensors",
+        ],
+    ]
 
     // Models directory path - ~/Library/Application Support/com.era-laboratories.voiceflow/models/
     private var modelsDir: URL {
@@ -1692,6 +1808,172 @@ class ModelManager: ObservableObject {
         loadModels()
         loadCurrentModel()
         loadSttSettings()
+        loadConsolidatedSettings()
+    }
+
+    // MARK: - Pipeline Mode and Consolidated Model Management
+
+    func loadConsolidatedSettings() {
+        // Load pipeline mode
+        if let modePtr = voiceflow_current_pipeline_mode() {
+            let modeStr = String(cString: modePtr)
+            voiceflow_free_string(modePtr)
+            currentPipelineMode = PipelineMode(rawValue: modeStr) ?? .sttPlusLlm
+        }
+
+        // Load current consolidated model
+        if let modelPtr = voiceflow_current_consolidated_model() {
+            currentConsolidatedModelId = String(cString: modelPtr)
+            voiceflow_free_string(modelPtr)
+        }
+
+        // Load consolidated model info
+        let count = voiceflow_consolidated_model_count()
+        var items: [ConsolidatedModelItem] = []
+        for i in 0..<count {
+            let info = voiceflow_consolidated_model_info(i)
+            if let idPtr = info.id, let namePtr = info.display_name, let dirPtr = info.dir_name {
+                let item = ConsolidatedModelItem(
+                    id: String(cString: idPtr),
+                    displayName: String(cString: namePtr),
+                    dirName: String(cString: dirPtr),
+                    sizeGB: info.size_gb,
+                    isDownloaded: info.is_downloaded
+                )
+                items.append(item)
+            }
+            voiceflow_free_consolidated_model_info(info)
+        }
+        consolidatedModels = items
+    }
+
+    func selectPipelineMode(_ mode: PipelineMode) {
+        guard mode != currentPipelineMode else { return }
+
+        let success = mode.rawValue.withCString { cString in
+            voiceflow_set_pipeline_mode(cString)
+        }
+
+        if success {
+            currentPipelineMode = mode
+            needsRestart = true
+        } else {
+            downloadError = "Failed to set pipeline mode"
+        }
+    }
+
+    func selectConsolidatedModel(_ modelId: String) {
+        guard modelId != currentConsolidatedModelId else { return }
+
+        let success = modelId.withCString { cString in
+            voiceflow_set_consolidated_model(cString)
+        }
+
+        if success {
+            currentConsolidatedModelId = modelId
+            needsRestart = true
+        } else {
+            downloadError = "Failed to set consolidated model"
+        }
+    }
+
+    func downloadConsolidatedModel(_ modelId: String) {
+        guard downloadingConsolidatedModelId == nil else { return }
+        guard let model = consolidatedModels.first(where: { $0.id == modelId }) else {
+            downloadError = "Consolidated model not found"
+            return
+        }
+        guard let hfRepo = Self.consolidatedHfRepos[modelId] else {
+            downloadError = "No HuggingFace repo for model \(modelId)"
+            return
+        }
+        guard let files = Self.consolidatedRequiredFiles[modelId] else {
+            downloadError = "No file list for model \(modelId)"
+            return
+        }
+
+        let destDir = modelsDir.appendingPathComponent(model.dirName)
+
+        // Create model directory
+        do {
+            try FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true, attributes: nil)
+        } catch {
+            downloadError = "Failed to create model directory: \(error.localizedDescription)"
+            return
+        }
+
+        downloadingConsolidatedModelId = modelId
+        consolidatedDownloadProgress = 0
+        downloadError = nil
+
+        var completedFiles = 0
+        let totalFiles = files.count
+
+        func downloadNextFile(_ index: Int) {
+            guard index < files.count else {
+                // All done
+                DispatchQueue.main.async { [weak self] in
+                    self?.downloadingConsolidatedModelId = nil
+                    self?.consolidatedDownloadProgress = 1.0
+                    self?.loadConsolidatedSettings() // Refresh model status
+                }
+                return
+            }
+
+            let filename = files[index]
+            let urlString = "https://huggingface.co/\(hfRepo)/resolve/main/\(filename)"
+            guard let url = URL(string: urlString) else {
+                DispatchQueue.main.async { [weak self] in
+                    self?.downloadError = "Invalid URL for \(filename)"
+                    self?.downloadingConsolidatedModelId = nil
+                }
+                return
+            }
+
+            let destFile = destDir.appendingPathComponent(filename)
+
+            let task = URLSession.shared.downloadTask(with: url) { [weak self] tempURL, response, error in
+                if let error = error {
+                    DispatchQueue.main.async {
+                        self?.downloadError = "Download failed: \(error.localizedDescription)"
+                        self?.downloadingConsolidatedModelId = nil
+                    }
+                    return
+                }
+
+                guard let tempURL = tempURL else {
+                    DispatchQueue.main.async {
+                        self?.downloadError = "Download failed: no file"
+                        self?.downloadingConsolidatedModelId = nil
+                    }
+                    return
+                }
+
+                do {
+                    if FileManager.default.fileExists(atPath: destFile.path) {
+                        try FileManager.default.removeItem(at: destFile)
+                    }
+                    try FileManager.default.moveItem(at: tempURL, to: destFile)
+
+                    completedFiles += 1
+                    DispatchQueue.main.async {
+                        self?.consolidatedDownloadProgress = Double(completedFiles) / Double(totalFiles)
+                    }
+
+                    // Download next file
+                    downloadNextFile(index + 1)
+                } catch {
+                    DispatchQueue.main.async {
+                        self?.downloadError = "Failed to save \(filename): \(error.localizedDescription)"
+                        self?.downloadingConsolidatedModelId = nil
+                    }
+                }
+            }
+            task.resume()
+        }
+
+        // Start downloading first file
+        downloadNextFile(0)
     }
 
     // MARK: - STT Engine Management
@@ -2058,7 +2340,134 @@ struct ModelSettingsView: View {
                     .cornerRadius(8)
                 }
 
-                // STT Engine Section
+                // Pipeline Mode Section
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(PipelineMode.allCases, id: \.self) { mode in
+                            HStack(spacing: 12) {
+                                // Radio button
+                                ZStack {
+                                    Circle()
+                                        .stroke(mode == modelManager.currentPipelineMode ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 2)
+                                        .frame(width: 20, height: 20)
+                                    if mode == modelManager.currentPipelineMode {
+                                        Circle()
+                                            .fill(Color.accentColor)
+                                            .frame(width: 12, height: 12)
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(mode.displayName)
+                                        .fontWeight(.medium)
+                                    Text(mode.description)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                modelManager.selectPipelineMode(mode)
+                            }
+
+                            if mode != PipelineMode.allCases.last {
+                                Divider()
+                            }
+                        }
+
+                        // Show consolidated model selection when in consolidated mode
+                        if modelManager.currentPipelineMode == .consolidated {
+                            Divider()
+                            Text("Consolidated Model")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .padding(.top, 4)
+
+                            ForEach(modelManager.consolidatedModels) { model in
+                                HStack(spacing: 12) {
+                                    ZStack {
+                                        Circle()
+                                            .stroke(model.id == modelManager.currentConsolidatedModelId ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 2)
+                                            .frame(width: 18, height: 18)
+                                        if model.id == modelManager.currentConsolidatedModelId {
+                                            Circle()
+                                                .fill(Color.accentColor)
+                                                .frame(width: 10, height: 10)
+                                        }
+                                    }
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(model.displayName)
+                                            .fontWeight(.medium)
+                                        Text(String(format: "%.1f GB", model.sizeGB))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    if model.isDownloaded {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(.green)
+                                    } else if modelManager.downloadingConsolidatedModelId == model.id {
+                                        HStack(spacing: 6) {
+                                            ProgressView()
+                                                .scaleEffect(0.7)
+                                            Text("\(Int(modelManager.consolidatedDownloadProgress * 100))%")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    } else {
+                                        Button(action: {
+                                            modelManager.downloadConsolidatedModel(model.id)
+                                        }) {
+                                            Image(systemName: "arrow.down.circle")
+                                                .foregroundColor(.accentColor)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(modelManager.downloadingConsolidatedModelId != nil)
+                                    }
+                                }
+                                .padding(.leading, 20)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if model.isDownloaded {
+                                        modelManager.selectConsolidatedModel(model.id)
+                                    }
+                                }
+                            }
+
+                            HStack(spacing: 4) {
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.blue)
+                                Text("Models are downloaded from HuggingFace (PyTorch format).")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.leading, 20)
+
+                            if let error = modelManager.downloadError, modelManager.downloadingConsolidatedModelId == nil {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .foregroundColor(.orange)
+                                    Text(error)
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                }
+                                .padding(.leading, 20)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } label: {
+                    Label("Pipeline Mode", systemImage: "arrow.triangle.branch")
+                        .font(.headline)
+                }
+
+                // STT Engine Section (only shown in traditional mode)
+                if modelManager.currentPipelineMode == .sttPlusLlm {
                 GroupBox {
                     VStack(alignment: .leading, spacing: 12) {
                         // Engine selection
@@ -2088,6 +2497,37 @@ struct ModelSettingsView: View {
                                             }
                                         )
                                     }
+                                }
+                                .padding(.leading, 32)
+                                .padding(.top, 4)
+                            }
+
+                            // Show Qwen3-ASR model info when selected
+                            if engine == .qwen3Asr && modelManager.currentSttEngine == .qwen3Asr {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    let hasModel = modelManager.consolidatedModels.contains(where: { $0.isDownloaded })
+                                    if hasModel {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundColor(.green)
+                                                .font(.caption)
+                                            Text("Qwen3-ASR model available")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    } else {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "exclamationmark.triangle.fill")
+                                                .foregroundColor(.orange)
+                                                .font(.caption)
+                                            Text("Download a Qwen3-ASR model from Consolidated Models section")
+                                                .font(.caption)
+                                                .foregroundColor(.orange)
+                                        }
+                                    }
+                                    Text("Transcription via Python daemon + LLM formatting")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
                                 }
                                 .padding(.leading, 32)
                                 .padding(.top, 4)
@@ -2133,6 +2573,7 @@ struct ModelSettingsView: View {
                     Label("LLM Models", systemImage: "cpu")
                         .font(.headline)
                 }
+                } // end if sttPlusLlm
 
                 // Error display
                 if let error = modelManager.downloadError {
@@ -2183,6 +2624,7 @@ struct ModelSettingsView: View {
         task.launchPath = "/bin/bash"
         task.arguments = ["-c", script]
         try? task.run()
+        // applicationWillTerminate will handle cleanup
         NSApp.terminate(nil)
     }
 }
