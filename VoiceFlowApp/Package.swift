@@ -18,7 +18,8 @@ let package = Package(
                 .unsafeFlags(["-parse-as-library"])
             ],
             linkerSettings: [
-                .linkedFramework("Carbon")
+                .linkedFramework("Carbon"),
+                .linkedFramework("ServiceManagement")
             ]
         ),
         .systemLibrary(

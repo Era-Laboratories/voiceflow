@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import AVFoundation
 import ApplicationServices
+import ServiceManagement
 
 // MARK: - Wizard Step
 
@@ -980,6 +981,7 @@ struct DoneStepView: View {
     let onComplete: () -> Void
 
     @State private var showCheckmark = false
+    @State private var launchAtLogin = true
 
     var body: some View {
         VStack(spacing: 24) {
@@ -1017,6 +1019,16 @@ struct DoneStepView: View {
             .cornerRadius(12)
             .padding(.horizontal, 40)
 
+            Toggle("Launch VoiceFlow when you log in", isOn: $launchAtLogin)
+                .padding(.horizontal, 60)
+                .onChange(of: launchAtLogin) { newValue in
+                    if newValue {
+                        try? SMAppService.mainApp.register()
+                    } else {
+                        try? SMAppService.mainApp.unregister()
+                    }
+                }
+
             Spacer()
 
             Button(action: onComplete) {
@@ -1035,6 +1047,8 @@ struct DoneStepView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 showCheckmark = true
             }
+            // Default to enabled — register on appear
+            try? SMAppService.mainApp.register()
         }
     }
 }

@@ -6,6 +6,7 @@ import UserNotifications
 import CoreGraphics
 import ApplicationServices
 import Combine
+import ServiceManagement
 import VoiceFlowFFI
 
 @main
@@ -1314,6 +1315,7 @@ struct SettingsView: View {
 
 struct GeneralSettingsView: View {
     @EnvironmentObject var voiceFlow: VoiceFlowBridge
+    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
         ScrollView {
@@ -1332,6 +1334,22 @@ struct GeneralSettingsView: View {
                     .padding(.vertical, 4)
                 } label: {
                     Label("Hotkey", systemImage: "keyboard")
+                        .font(.headline)
+                }
+
+                // Startup Section
+                GroupBox {
+                    Toggle("Launch VoiceFlow at login", isOn: $launchAtLogin)
+                        .onChange(of: launchAtLogin) { newValue in
+                            if newValue {
+                                try? SMAppService.mainApp.register()
+                            } else {
+                                try? SMAppService.mainApp.unregister()
+                            }
+                        }
+                        .padding(.vertical, 4)
+                } label: {
+                    Label("Startup", systemImage: "power")
                         .font(.headline)
                 }
 
