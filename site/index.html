@@ -50,7 +50,7 @@ html {
 
 body {
   font-family: var(--font);
-  background: var(--bg);
+  background: var(--bg-alt);
   color: var(--text);
   line-height: 1.6;
   overflow-x: hidden;
@@ -96,6 +96,7 @@ nav {
   z-index: 100;
   padding: 14px 0;
   transition: background 0.3s, backdrop-filter 0.3s, border-color 0.3s, box-shadow 0.3s;
+  background: transparent;
   border-bottom: 1px solid transparent;
 }
 nav.scrolled {
@@ -786,6 +787,7 @@ footer {
   .showcase-layout { grid-template-columns: 1fr; gap: 48px; }
   .showcase-layout.reverse { direction: ltr; }
   .nav-links a.hide-mobile { display: none; }
+  .nav-links { gap: 12px; }
 }
 @media (max-width: 600px) {
   .hero { padding: 120px 0 60px; }
@@ -794,6 +796,9 @@ footer {
   .metrics-grid { grid-template-columns: 1fr 1fr; }
   .feature-card { padding: 24px 20px; }
   .footer-inner { flex-direction: column; gap: 16px; }
+  .nav-links .btn-ghost { display: none; }
+  .nav-links { gap: 8px; }
+  .btn-primary { padding: 8px 16px; font-size: 13px; }
 }
 </style>
 </head>
